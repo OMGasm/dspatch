@@ -153,19 +153,30 @@ namespace dspatch.Nitro
 			return (uint)IndexOf(Data, new byte[] { 0x21, 0x06, 0xC0, 0xDE, 0xDE, 0xC0, 0x06, 0x21 }) - 0x1C;
 		}
 
-		private static unsafe long IndexOf(byte[] Data, byte[] Search)
+		private static long IndexOf(byte[] Data, byte[] Search)
 		{
-			fixed (byte* H = Data) fixed (byte* N = Search)
+			long MaxOffset = Data.LongLength - Search.LongLength + 1;
+			if (MaxOffset <= 0)
 			{
-				long i = 0;
-				for (byte* hNext = H, hEnd = H + Data.LongLength; hNext < hEnd; i++, hNext++)
-				{
-					bool Found = true;
-					for (byte* hInc = hNext, nInc = N, nEnd = N + Search.LongLength; Found && nInc < nEnd; Found = *nInc == *hInc, nInc++, hInc++) ;
-					if (Found) return i;
-				}
-				return -1;
+				throw new ArgumentOutOfRangeException(nameof(Search));
 			}
+
+			for (long Offset = 0; Offset < MaxOffset; Offset++)
+			{
+				bool Found = true;
+				for (long patternOffset = 0; patternOffset < Search.LongLength; patternOffset++)
+				{
+					if (Data[Offset + patternOffset] != Search[patternOffset])
+					{
+						Found = false;
+						break;
+					}
+				}
+
+				if (Found) return Offset;
+			}
+
+			throw new Exception("No target module params offset found!");
 		}
 	}
 }
